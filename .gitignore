@@ -74,3 +74,10 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+# XDE
+.build_Debug/
+.settings/
+bin/
+.cproject
+.project
