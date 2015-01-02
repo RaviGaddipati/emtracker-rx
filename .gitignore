@@ -81,3 +81,10 @@ $RECYCLE.BIN/
 bin/
 .cproject
 .project
+
+#Altium
+History/
+Project Logs for Receiver/
+Project Outputs for Receiver/
+.svn/
+_*

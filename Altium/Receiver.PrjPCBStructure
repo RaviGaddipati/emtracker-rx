@@ -1,0 +1,6 @@
+Record=TopLevelDocument|FileName=Top.SchDoc
+Record=SheetSymbol|Record=SheetSymbol|SourceDocument=Top.SchDoc|Designator=COIL0|SchDesignator=COIL0|FileName=Coils.SchDoc|SymbolType=Normal|RawFileName=Coils.SchDoc|DesignItemId= |SourceLibraryName= |ObjectKind=Sheet Symbol|RevisionGUID= |ItemGUID= |VaultGUID= 
+Record=SheetSymbol|Record=SheetSymbol|SourceDocument=Top.SchDoc|Designator=COIL1|SchDesignator=COIL1|FileName=Coils.SchDoc|SymbolType=Normal|RawFileName=Coils.SchDoc|DesignItemId= |SourceLibraryName= |ObjectKind=Sheet Symbol|RevisionGUID= |ItemGUID= |VaultGUID= 
+Record=SheetSymbol|Record=SheetSymbol|SourceDocument=Top.SchDoc|Designator=COIL2|SchDesignator=COIL2|FileName=Coils.SchDoc|SymbolType=Normal|RawFileName=Coils.SchDoc|DesignItemId= |SourceLibraryName= |ObjectKind=Sheet Symbol|RevisionGUID= |ItemGUID= |VaultGUID= 
+Record=SheetSymbol|Record=SheetSymbol|SourceDocument=Top.SchDoc|Designator=CORE|SchDesignator=CORE|FileName=Sheet1.SchDoc|SymbolType=Normal|RawFileName=Sheet1.SchDoc|DesignItemId= |SourceLibraryName= |ObjectKind=Sheet Symbol|RevisionGUID= |ItemGUID= |VaultGUID= 
+Record=SheetSymbol|Record=SheetSymbol|SourceDocument=Top.SchDoc|Designator=IMU|SchDesignator=IMU|FileName=IMU.SchDoc|SymbolType=Normal|RawFileName=IMU.SchDoc|DesignItemId= |SourceLibraryName= |ObjectKind=Sheet Symbol|RevisionGUID= |ItemGUID= |VaultGUID= 
