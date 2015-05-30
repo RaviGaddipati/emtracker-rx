@@ -11,7 +11,7 @@
 	<Packages>
 		<Package ID="0" Type="XS1-LnA-64-LQ64">
 			<Nodes>
-				<Node Id="0" InPackageId="0" Type="XS1-L8A-64" ReferenceFrequency="500MHz">
+				<Node Id="0" InPackageId="0" Type="XS1-L8A-64" SystemFrequency="500MHz" Oscillator="20Mhz">
 					<Tile Number="0" Reference="tile[0]">
 						<!-- ADC Ports -->
 						<Port Location="XS1_PORT_1N" Name="PORT_ADC_CS" />
@@ -43,12 +43,13 @@
 
 		</Package>
 	</Packages>
-	<Links>
-		<Link Encoding="2wire" Delays="4,4" Flags="SOD">
+		<!-- <Links>
+	<Link Encoding="2wire" Delays="4,4">
 			<LinkEndpoint NodeId="0" Link="X0LB" />
 			<LinkEndpoint RoutingId="0x8000" Chanend="1" />
-		</Link>
-	</Links>
+			
+		</Link> 
+	</Links> -->
 	<ExternalDevices>
 
 		<Device NodeId="0" Tile="0" Class="SPIFlash" Name="bootFlash"

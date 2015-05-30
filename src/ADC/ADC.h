@@ -16,7 +16,7 @@
 
 #ifndef ADC_H_
 #define ADC_H_
-#define spi_clock_div 2
+
 
 /**
  * A structure containing all of the neccesary components to control a SPI ADC module
@@ -43,6 +43,5 @@ typedef struct ADC {
  * @param adc Structure defining the ADC to read from
  * @param output Streaming Channel to a Processing thread
  */
-void ADCThread(ADC &adc, streaming chanend pair1, streaming chanend pair2);
-
+void ADCThread(ADC &adc, streaming chanend ch0, streaming chanend ch1, streaming chanend ch2);
 #endif /* ADC_H_ */

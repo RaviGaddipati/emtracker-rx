@@ -2,141 +2,113 @@
  * IMU.xc
  *
  *  Created on: Dec 28, 2014
- *      Author: Ravi
+ *      Author: Ravi Gaddipati
  */
 #include <xs1.h>
 #include <xclib.h>
 #include "IMU.h"
 
-int readAccelX(struct r_i2c &i2c);
-int readAccelY(struct r_i2c &i2c);
-int readAccelZ(struct r_i2c &i2c);
-int readGyroX(struct r_i2c &i2c);
-int readGyroY(struct r_i2c &i2c);
-int readGyroZ(struct r_i2c &i2c);
-int readMagX(struct r_i2c &i2c);
-int readMagY(struct r_i2c &i2c);
-int readMagZ(struct r_i2c &i2c);
 
+void initIMU(r_i2c &i2c){
+    unsigned char data[1];
+    i2c_master_init(i2c);
 
-void sensorUpdate(struct r_i2c &i2c, streaming chanend output) {
-	long vals[9];
-	while (1) {
-		vals[0] = (long)readAccelX(i2c);
-		vals[1] = (long)readAccelY(i2c);
-		vals[2] = (long)readAccelZ(i2c);
-		vals[3] = (long)readGyroX(i2c);
-		vals[4] = (long)readGyroY(i2c);
-		vals[5] = (long)readGyroZ(i2c);
-		vals[6] = (long)readMagX(i2c);
-		vals[7] = (long)readMagY(i2c);
-		vals[8] = (long)readMagZ(i2c);
-
-		for (int i = 0; i < 9; i++) {
-			output <: (long)(vals[i] << 4) + i;
-		}
-
-	}
+    // BW_RATE, last 4 bits is BW
+    data[0] = 0b00001010;
+    i2c_master_write_reg(ACCEL, 0x2C,data,1,i2c);
+    // Data format, last 2 bits are range (2g,4g,8g,16g in order). left justified. First bit is self test
+    data[0] = 0b00000000;
+    i2c_master_write_reg(ACCEL, 0x31,data,1,i2c);
+    // Set to measure mode, no sleep
+    data[0] = 0b00001000;
+    i2c_master_write_reg(ACCEL, 0x2D,data,1,i2c);
+    // Gyro LPF bandwidth, 256Hz
+    data[0] = 0b00011000;
+    i2c_master_write_reg(GYRO, 0x16,data,1,i2c);
+    // Mag 2 measurements avgd, 75Hz
+    data[0] = 0b00111000;
+    i2c_master_write_reg(MAG, 0x00,data,1,i2c);
+    // Mag continous measurement mode
+    data[0] = 0b00000000;
+    i2c_master_write_reg(MAG, 0x02,data,1,i2c);
 }
 
-int readAccelX(struct r_i2c &i2c) {
-	unsigned char data[1];
-	int x;
-	i2c_master_read_reg(ACCEL, 0x32, data, 1, i2c);
-	x = data[0];
-	i2c_master_read_reg(ACCEL, 0x33, data, 1, i2c);
-	x = (int) (data[0] << 8) + x;
-
-	return x;
+int readAccelX(r_i2c &i2c) {
+    unsigned char data[2];
+    i2c_master_read_reg(ACCEL, 0x32, data, 2, i2c);
+    return (int)(data[0] << 8) | (int)data[1];
 }
 
-int readAccelY(struct r_i2c &i2c) {
-	unsigned char data[1];
-	int y;
-
-	i2c_master_read_reg(ACCEL, 0x34, data, 1, i2c);
-	y = data[0];
-	i2c_master_read_reg(ACCEL, 0x35, data, 1, i2c);
-	y = (int) (data[0] << 8) + y;
-
-	return y;
+int readAccelY(r_i2c &i2c) {
+    unsigned char data[2];
+    i2c_master_read_reg(ACCEL, 0x34, data, 2, i2c);
+    return (int)(data[1] << 8) | (int)data[0];
 }
 
-int readAccelZ(struct r_i2c &i2c) {
-	unsigned char data[1];
-	int z;
-
-	i2c_master_read_reg(ACCEL, 0x36, data, 1, i2c);
-	z = data[0];
-	i2c_master_read_reg(ACCEL, 0x37, data, 1, i2c);
-	z = (int) (data[0] << 8) + z;
-
-	return z;
+int readAccelZ(r_i2c &i2c) {
+	unsigned char data[2];
+	i2c_master_read_reg(ACCEL, 0x36, data, 2, i2c);
+	return (int)(data[1] << 8) | (int)data[0];
 }
 
-int readGyroX(struct r_i2c &i2c) {
-	unsigned char data[1];
-	int x;
-	i2c_master_read_reg(GYRO, 0x1E, data, 1, i2c);
-	x = data[0];
-	i2c_master_read_reg(GYRO, 0x1D, data, 1, i2c);
-	x = (int) (data[0] << 8) + x;
-
-	return x;
-}
-int readGyroY(struct r_i2c &i2c) {
-	unsigned char data[1];
-	int y;
-	i2c_master_read_reg(GYRO, 0x20, data, 1, i2c);
-	y = data[0];
-	i2c_master_read_reg(GYRO, 0x1F, data, 1, i2c);
-	y = (int) (data[0] << 8) + y;
-
-	return y;
+void readAccel(r_i2c &i2c, int vals[]) {
+    unsigned char data[6];
+    i2c_master_read_reg(ACCEL, 0x32, data, 6, i2c);
+    vals[0] = (int)(data[1] << 8) | (int)data[0];
+    vals[1] = (int)(data[3] << 8) | (int)data[2];
+    vals[2] = (int)(data[5] << 8) | (int)data[4];
 
 }
-int readGyroZ(struct r_i2c &i2c) {
-	unsigned char data[1];
-	int z;
-	i2c_master_read_reg(GYRO, 0x22, data, 1, i2c);
-	z = data[0];
-	i2c_master_read_reg(GYRO, 0x21, data, 1, i2c);
-	z = (int) (data[0] << 8) + z;
+int readGyroX(r_i2c &i2c) {
+	unsigned char data[2];
+	i2c_master_read_reg(GYRO, 0x1D, data, 2, i2c);
+	return (int)(data[0] << 8) | (int)data[1];
+}
 
-	return z;
+int readGyroY(r_i2c &i2c) {
+    unsigned char data[2];
+    i2c_master_read_reg(GYRO, 0x1F, data, 2, i2c);
+    return (int)(data[0] << 8) | (int)data[1];
 
 }
-int readMagX(struct r_i2c &i2c) {
-	unsigned char data[1];
-	int x;
-	i2c_master_read_reg(MAG, 0x04, data, 1, i2c);
-	x = data[0];
-	i2c_master_read_reg(MAG, 0x03, data, 1, i2c);
-	x = (int) (data[0] << 8) + x;
-
-	return x;
+int readGyroZ(r_i2c &i2c) {
+    unsigned char data[2];
+    i2c_master_read_reg(GYRO, 0x21, data, 2, i2c);
+    return (int)(data[0] << 8) | (int)data[1];
 
 }
-int readMagY(struct r_i2c &i2c) {
-	unsigned char data[1];
-	int y;
-	i2c_master_read_reg(MAG, 0x08, data, 1, i2c);
-	y = data[0];
-	i2c_master_read_reg(MAG, 0x07, data, 1, i2c);
-	y = (int) (data[0] << 8) + y;
-
-	return y;
+void readGyro(r_i2c &i2c, int vals[]) {
+    unsigned char data[6];
+    i2c_master_read_reg(ACCEL, 0x1D, data, 6, i2c);
+    vals[0] = (int)(data[0] << 8) | (int)data[1];
+    vals[1] = (int)(data[2] << 8) | (int)data[3];
+    vals[2] = (int)(data[4] << 8) | (int)data[5];
 
 }
-int readMagZ(struct r_i2c &i2c) {
-	unsigned char data[1];
-	int z;
-	i2c_master_read_reg(MAG, 0x06, data, 1, i2c);
-	z = data[0];
-	i2c_master_read_reg(MAG, 0x05, data, 1, i2c);
-	z = (int) (data[0] << 8) + z;
+int readMagX(r_i2c &i2c) {
+    unsigned char data[2];
+    i2c_master_read_reg(GYRO, 0x03, data, 2, i2c);
+    return (int)(data[0] << 8) | (int)data[1];
 
-	return z;
+}
+int readMagY(r_i2c &i2c) {
+    unsigned char data[2];
+    i2c_master_read_reg(GYRO, 0x07, data, 2, i2c);
+    return (int)(data[0] << 8) | (int)data[1];
+
+}
+int readMagZ(r_i2c &i2c) {
+    unsigned char data[2];
+    i2c_master_read_reg(GYRO, 0x05, data, 2, i2c);
+    return (int)(data[0] << 8) | (int)data[1];
+
+}
+void readMag(r_i2c &i2c, int vals[]) {
+    unsigned char data[6];
+    i2c_master_read_reg(ACCEL, 0x03, data, 6, i2c);
+    vals[0] = (int)(data[0] << 8) | (int)data[1];
+    vals[2] = (int)(data[2] << 8) | (int)data[3];
+    vals[1] = (int)(data[4] << 8) | (int)data[5];
 
 }
 
