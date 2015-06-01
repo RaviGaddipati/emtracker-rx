@@ -1,97 +1,107 @@
 /**
  * @file
  * @author Ravi Gaddipati <ravigaddipati@gmail.com>\n
- * <a href="www.centumengineering.com">Centum Engineering</a>
- * @version 1.0
- * @section License
- * This code can be used only with expressed consent from the owner
- * @section Description
- * ADC functions to interface with the AD7924. This file contains the definition for the thread, as well as a function to configure the ADCs (bit banged).
- * The functions take an ADC structure by reference.
  */
 
 #include <xs1.h>
 #include <xclib.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include "ADC.h"
-
-void configureADC(ADC &adc);
 
 /**
  * Collects data from the SPI ADCs and outputs to the matched Processing thread
- *
+ * Two channels are read in each cycle to fill up the 32bit buffered port.
  * @param adc Structure defining the ADC to read from
  * @param output Streaming Channel to a Processing thread
  */
-void ADCThread(ADC &adc, streaming chanend ch0, streaming chanend ch1, streaming chanend ch2) {
-    int data, data1, data2, address1, address2;
+void ADCThread(ADC &adc, streaming chanend out0, streaming chanend out1, streaming chanend out2) {
+    unsigned int data0, data1, addr0, addr1;
+    unsigned int counter0 = 0, counter1 = 0, counter2 = 0;
+    unsigned int ch0[256], ch1[256], ch2[256];
     timer t;
-    long time;
-
-    configure_clock_rate(adc.blk1, 100, 4);
-    configure_out_port(adc.SCLK, adc.blk1, 0);
-    configure_clock_src(adc.blk2, adc.SCLK);
-    configure_in_port(adc.MISO, adc.blk2);
-    clearbuf(adc.SCLK);
-    start_clock(adc.blk1);
-    start_clock(adc.blk2);
-    adc.SCLK <: 0xFF;
+    unsigned int time;
 
     configureADC(adc);
 
     t :> time;
+    time += 10000;
     while (1) {
         //Read a packet of data, for channel n
         select {
-            case t when timerafter(time) :> void:
-            t :> time;
-            time += 100000; //100khz sample rate
+        case t when timerafter(time) :> void:
+        t :> time;
+        time += UPDATE_PERIOD;
 
-            adc.CS <: 0;
-            clearbuf(adc.MISO);
-            adc.SCLK <: 0xAA;
-            adc.SCLK <: 0xAA;
-            adc.SCLK <: 0xAA;
-            adc.SCLK <: 0xAA;
+        adc.CS <: 0;
+        clearbuf(adc.MISO);
+        adc.SCLK <: 0xAAAAAAAA;
+        sync(adc.SCLK);
+        adc.CS <: 1;
 
-            sync(adc.SCLK);
-            adc.CS <: 1;
-
-            break;
+        break;
         }
+        // read the next channel
         select {
-            case t when timerafter(time):> void:
-            //Read a packet of data, for channel n+1
-            t :> time;
-            time += 100000;
+        case t when timerafter(time) :> void:
+        t :> time;
+        time += UPDATE_PERIOD;
 
-            adc.CS <: 0;
-            adc.SCLK <: 0xAA;
-            adc.SCLK <: 0xAA;
-            adc.SCLK <: 0xAA;
-            adc.SCLK <: 0xAA;
+        adc.CS <: 0;
+        adc.SCLK <: 0xAAAAAAAA;
+        sync(adc.SCLK);
+        adc.CS <: 1;
 
-            adc.MISO :> data;
-            adc.CS <: 1;
+        break;
+        }
 
+        //extract channel data
+        //Format: [ch n[0,addr (2 bits),result(12 bits),0],ch n + 1 [0,addr (2 bits),result(12 bits),0]]
+        adc.MISO :> data0;
+        data0 = (unsigned int) bitrev(data0); // MSB first
+        data1 = (data0 & 0xFFFF) >> 1;
+        data0 = data0 >> 17;
+        addr0 = data0 >> 12;
+        addr1 = data1 >> 12;
+        data0 = data0 & 0xFFF;
+        data1 = data1 & 0xFFF;
+
+        // store result. addr1 is always next channel due to sequencer.
+        switch (addr0){
+        case 0:
+            if (counter0 < 256) {
+                ch0[counter0] = data0;
+                counter0++;
+                ch1[counter1] = data1;
+                counter1++;
+            }
+            break;
+        case 1:
+            if (counter1 < 256) {
+                ch1[counter1] = data0;
+                counter1++;
+                ch2[counter2] = data1;
+                counter2++;
+            }
+            break;
+        case 2:
+            if (counter2 < 256) {
+                ch2[counter2] = data0;
+                counter2++;
+                ch0[counter0] = data1;
+                counter0++;
+            }
             break;
         }
 
-        //Output an integer w/ channel identifier bit
-        data = (int) bitrev(data);
-        data1 = ((data) >> 16);
-        data2 = ((data) & 65535);
-        address1 = ((data1 & 0b1110000000000000) >> 13);
-        address2 = ((data2 & 0b1110000000000000) >> 13);
-        data1 = (unsigned int) (data1 & 0b0001111111111111) >> 1;
-        data2 = (unsigned int) (data2 & 0b0001111111111111) >> 1;
-
-        if (address1 == 0 && address2 == 1) {
-            ch0 <: data1;
-            ch1 <: data2;
-        } else if (address1 == 2 && address2 == 3) {
-            ch2 <: data1;
+        // After collecting data for fft, send to fft threads. and continue collecting next block.
+        if (counter0 == 256 && counter1 == 256 && counter2 == 256) {
+            for (int i = 0; i < 256; i++) {
+                out0 <: ch0[i];
+                out1 <: ch1[i];
+                out2 <: ch2[i];
+            }
+            counter0 = 0;
+            counter1 = 0;
+            counter2 = 0;
         }
 
     }
@@ -106,27 +116,37 @@ void ADCThread(ADC &adc, streaming chanend ch0, streaming chanend ch1, streaming
  * @param adc Structure defining the ADC to configure
  */
 void configureADC(ADC &adc) {
-    int data;
+    // 100Mhz/6 SPI clk
+    configure_clock_rate(adc.blk1, 100, 6);
+    configure_out_port(adc.SCLK, adc.blk1, 1);
+    configure_clock_src(adc.blk2, adc.SCLK);
+    configure_in_port(adc.MISO, adc.blk2);
+    configure_out_port(adc.MOSI, adc.blk2,0);
+    start_clock(adc.blk1);
+    start_clock(adc.blk2);
     adc.CS <: 1;
-    adc.MOSI <: 1;
+
+    /* Config: sequencer ch 0-2, range 0 to VREF*2, straight binary */
+    // Sets initial write bit to 1
+    adc.MOSI <: 0xFFFFFFFF;
+    adc.SCLK <: 0xAAAAAAAA;
+    sync(adc.SCLK);
+
+    clearbuf(adc.SCLK);
+    clearbuf(adc.MOSI);
     adc.CS <: 0;
-
-    clearbuf(adc.MISO);
-    for (int i = 0; i < 8; i++) {
-        adc.SCLK <: 0xAA;
-    }
-
+    adc.CS <: 0;
+    // next 11 bits of config register (reversed)
+    adc.MOSI <: 0b10011101001;
+    adc.SCLK <: 0xAAAAAAAA;
     sync(adc.SCLK);
-    adc.MISO :> data;
-
+    clearbuf(adc.SCLK);
     clearbuf(adc.MISO);
-    for (int i = 0; i < 8; i++) {
-        adc.SCLK <: 0xAA;
-    }
-
-    sync(adc.SCLK);
-    adc.MISO :> data;
-
+    clearbuf(adc.MOSI);
     adc.CS <: 1;
+
+    // sets write bit to 0
     adc.MOSI <: 0;
+    adc.SCLK <: 0xAAAAAAAA;
+    sync(adc.SCLK);
 }

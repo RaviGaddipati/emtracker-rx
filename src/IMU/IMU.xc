@@ -8,7 +8,6 @@
 #include <xclib.h>
 #include "IMU.h"
 
-
 void initIMU(r_i2c &i2c){
     unsigned char data[1];
     i2c_master_init(i2c);
@@ -79,7 +78,7 @@ int readGyroZ(r_i2c &i2c) {
 }
 void readGyro(r_i2c &i2c, int vals[]) {
     unsigned char data[6];
-    i2c_master_read_reg(ACCEL, 0x1D, data, 6, i2c);
+    i2c_master_read_reg(GYRO, 0x1D, data, 6, i2c);
     vals[0] = (int)(data[0] << 8) | (int)data[1];
     vals[1] = (int)(data[2] << 8) | (int)data[3];
     vals[2] = (int)(data[4] << 8) | (int)data[5];
@@ -87,25 +86,25 @@ void readGyro(r_i2c &i2c, int vals[]) {
 }
 int readMagX(r_i2c &i2c) {
     unsigned char data[2];
-    i2c_master_read_reg(GYRO, 0x03, data, 2, i2c);
+    i2c_master_read_reg(MAG, 0x03, data, 2, i2c);
     return (int)(data[0] << 8) | (int)data[1];
 
 }
 int readMagY(r_i2c &i2c) {
     unsigned char data[2];
-    i2c_master_read_reg(GYRO, 0x07, data, 2, i2c);
+    i2c_master_read_reg(MAG, 0x07, data, 2, i2c);
     return (int)(data[0] << 8) | (int)data[1];
 
 }
 int readMagZ(r_i2c &i2c) {
     unsigned char data[2];
-    i2c_master_read_reg(GYRO, 0x05, data, 2, i2c);
+    i2c_master_read_reg(MAG, 0x05, data, 2, i2c);
     return (int)(data[0] << 8) | (int)data[1];
 
 }
 void readMag(r_i2c &i2c, int vals[]) {
     unsigned char data[6];
-    i2c_master_read_reg(ACCEL, 0x03, data, 6, i2c);
+    i2c_master_read_reg(MAG, 0x03, data, 6, i2c);
     vals[0] = (int)(data[0] << 8) | (int)data[1];
     vals[2] = (int)(data[2] << 8) | (int)data[3];
     vals[1] = (int)(data[4] << 8) | (int)data[5];

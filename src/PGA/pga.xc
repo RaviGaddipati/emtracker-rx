@@ -1,14 +1,12 @@
 #include <xs1.h>
 #include <xclib.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include "pga.h"
 
 /**
  * Init PGA ports, and set gains to 1.
  */
 void initPGA(PGA &pga) {
-    // SCLK at 100/16 Mhz. Output on MOSI on SCLK edge.
+    // SCLK at 100/16 Mhz. Output MOSI on SCLK edge.
     configure_clock_rate(pga.blk1, 100, 16);
     configure_out_port(pga.SCLK, pga.blk1, 1);
     configure_clock_src(pga.blk2, pga.SCLK);
@@ -18,39 +16,45 @@ void initPGA(PGA &pga) {
     start_clock(pga.blk2);
     pga.CS <: 1;
     pga.MOSI <: 1;
+    unsigned int data[3];
+    data[0] = 1;
+    data[1] = 1;
+    data[2] = 1;
 
-    setGain(pga,1,1,1,1,1,1);
+    setGain(pga,data);
 
 }
 
 /**
  * Set gain of all PGA's. Every PGA must be updated every update.
- * Possible gains (0-19):
- * 0: 0,0
- * 1: 1,1
- * 2: 1,2
- * 4: 2,2
- * 5: 3,1
- * 10: 3,2
- * 20: 4,2
- * 25: 3,3
- * 40: 5,2
- * 50: 4,3
- * 100: 4,4
- * 200: 5,4
- * 250: 6,3
- * 400: 5,5
- * 500: 6,4
- * 1000: 6,5
- * 2000: 7,5
- * 2500: 6,6
- * 5000: 7,6
- * 10000: 7,7
+ * Each nibble controls the gain of one channel, 0-7.
+ * Possible gains [num- gain: chA, chB]:
+ * 0- 0: 0,0
+ * 1- 1: 1,1
+ * 2- 2: 1,2
+ * 3- 4: 2,2
+ * 4- 5: 3,1
+ * 5- 10: 3,2
+ * 6- 20: 4,2
+ * 7- 25: 3,3
+ * 8- 40: 5,2
+ * 9- 50: 4,3
+ * 10- 100: 4,4
+ * 11- 200: 5,4
+ * 12- 250: 6,3
+ * 13- 400: 5,5
+ * 14- 500: 6,4
+ * 15- 1000: 6,5
+ * 16- 2000: 7,5
+ * 17- 2500: 6,6
+ * 18- 5000: 7,6
+ * 19- 10000: 7,7
  */
 void setGain(PGA &pga, unsigned int gain[]) {
     unsigned int  mosi = 0;
 
     for (int i = 0; i < 3; i ++){
+        mosi = mosi << 8;
         switch (gain[i]){
         case 0: break;
         case 1: mosi |= 0x11; break;
@@ -74,7 +78,6 @@ void setGain(PGA &pga, unsigned int gain[]) {
         case 19: mosi |= 0x77; break;
         default: mosi |= 0x77; break;
         }
-        mosi = mosi << 8;
     }
 
     pga.CS <: 0;

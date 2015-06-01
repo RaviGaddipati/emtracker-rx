@@ -8,8 +8,6 @@
 #ifndef PGA_H_
 #define PGA_H_
 
-#define DEF_DIVIDER 2
-
 typedef struct PGA {
     out port CS;
     out buffered port:32 MOSI;
